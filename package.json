@@ -1,0 +1,23 @@
+{
+    "name": "makeup-multi-tenancy",
+    "version": "1.0.0",
+    "description": "Multi-tenancy makeup application with AWS Lambda and DynamoDB",
+    "main": "index.js",
+    "scripts": {
+      "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "dependencies": {
+      "aws-sdk": "^2.1406.0",     
+      "jsonwebtoken": "^8.5.1",   
+      "uuid": "^8.3.2"            
+    },
+    "devDependencies": {
+      "serverless-offline": "^8.0.0"  
+    },
+    "engines": {
+      "node": "14.x"   
+    },
+    "author": "",
+    "license": "ISC"
+  }
+  

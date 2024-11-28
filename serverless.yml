@@ -1,0 +1,235 @@
+service: makeup-multi-tenancy
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  memorySize: 1024
+  timeout: 30
+  region: us-east-1
+  stage: ${opt:stage, 'dev'}  # La etapa por defecto es 'dev'
+  iam:
+    role: arn:aws:iam::385301667309:role/LabRole
+  environment:
+    JWT_SECRET_KEY: ${env:JWT_SECRET_KEY}  # Se puede cargar desde un archivo .env
+
+functions:
+  # API Usuarios
+  createUser:
+    handler: src/users/create_user.createUser
+    events:
+      - http:
+          path: users
+          method: post
+          cors: true
+          authorizer: aws_iam  # Se puede usar JWT o IAM para autenticación
+          
+  loginUser:
+    handler: src/users/login_user.loginUser
+    events:
+      - http:
+          path: users/login
+          method: post
+          cors: true
+
+  validateToken:
+    handler: src/users/validate_token.validateToken
+    events:
+      - http:
+          path: users/validate
+          method: get
+          cors: true
+
+  # API Productos
+  createProduct:
+    handler: src/products/createProduct.createProduct
+    events:
+      - http:
+          path: products
+          method: post
+          cors: true
+          
+  listProducts:
+    handler: src/products/listProducts.listProducts
+    events:
+      - http:
+          path: products
+          method: get
+          cors: true
+
+  # API Pedidos
+  createOrder:
+    handler: src/orders/create_order.createOrder
+    events:
+      - http:
+          path: orders
+          method: post
+          cors: true
+          
+  listOrders:
+    handler: src/orders/list_orders.listOrders
+    events:
+      - http:
+          path: orders
+          method: get
+          cors: true
+
+  # API Reseñas
+  createReview:
+    handler: src/reviews/create_review.createReview
+    events:
+      - http:
+          path: reviews
+          method: post
+          cors: true
+          
+  listReviews:
+    handler: src/reviews/list_reviews.listReviews
+    events:
+      - http:
+          path: reviews
+          method: get
+          cors: true
+
+  # API Categorías
+  createCategory:
+    handler: src/categories/create_category.createCategory
+    events:
+      - http:
+          path: categories
+          method: post
+          cors: true
+
+  listCategories:
+    handler: src/categories/list_categories.listCategories
+    events:
+      - http:
+          path: categories
+          method: get
+          cors: true
+
+resources:
+  Resources:
+    # Tabla DynamoDB para Usuarios
+    UsersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: Users
+        AttributeDefinitions:
+          - AttributeName: tenant_id
+            AttributeType: S
+          - AttributeName: user_id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: tenant_id
+            KeyType: HASH
+          - AttributeName: user_id
+            KeyType: RANGE
+        ProvisionedThroughput:
+          ReadCapacityUnits: 5
+          WriteCapacityUnits: 5
+        TimeToLiveSpecification:
+          AttributeName: ttl
+          Enabled: true  # Esto habilita la TTL (expiración automática de elementos)
+
+    # Tabla DynamoDB para Productos
+    ProductsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: Products
+        AttributeDefinitions:
+          - AttributeName: tenant_id
+            AttributeType: S
+          - AttributeName: product_id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: tenant_id
+            KeyType: HASH
+          - AttributeName: product_id
+            KeyType: RANGE
+        ProvisionedThroughput:
+          ReadCapacityUnits: 5
+          WriteCapacityUnits: 5
+        GlobalSecondaryIndexes:
+          - IndexName: ProductCategoryIndex
+            KeySchema:
+              - AttributeName: category
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 5
+              WriteCapacityUnits: 5
+
+    # Tabla DynamoDB para Reseñas
+    ReviewsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: Reviews
+        AttributeDefinitions:
+          - AttributeName: tenant_id
+            AttributeType: S
+          - AttributeName: product_id
+            AttributeType: S
+          - AttributeName: review_id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: tenant_id
+            KeyType: HASH
+          - AttributeName: product_id
+            KeyType: RANGE
+        GlobalSecondaryIndexes:
+          - IndexName: ReviewIdIndex
+            KeySchema:
+              - AttributeName: review_id
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 5
+              WriteCapacityUnits: 5
+
+    # Tabla DynamoDB para Pedidos
+    OrdersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: Orders
+        AttributeDefinitions:
+          - AttributeName: tenant_id
+            AttributeType: S
+          - AttributeName: order_id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: tenant_id
+            KeyType: HASH
+          - AttributeName: order_id
+            KeyType: RANGE
+        ProvisionedThroughput:
+          ReadCapacityUnits: 5
+          WriteCapacityUnits: 5
+
+    # Tabla DynamoDB para Categorías
+    CategoriesTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: Categories
+        AttributeDefinitions:
+          - AttributeName: tenant_id
+            AttributeType: S
+          - AttributeName: category_id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: tenant_id
+            KeyType: HASH
+          - AttributeName: category_id
+            KeyType: RANGE
+        ProvisionedThroughput:
+          ReadCapacityUnits: 5
+          WriteCapacityUnits: 5
+
+# Plugins y configuraciones adicionales
+plugins:
+  - serverless-offline  # Para ejecutar la API de forma local
+
+custom:
+  serverless-offline:
+    port: 3000

@@ -1,0 +1,4 @@
+boto3==1.26.0         # Cliente de AWS SDK para Python (Boto3) - Para interactuar con DynamoDB
+pyjwt==2.7.0          # Para manejar los tokens JWT
+cryptography==39.0.1  # Dependencia para la generación y verificación de JWT (si se usa)
+requests==2.28.2      # Librería para hacer peticiones HTTP (si es necesario)
